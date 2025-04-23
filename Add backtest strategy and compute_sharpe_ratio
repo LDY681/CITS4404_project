@@ -1,0 +1,569 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/LDY681/CITS4404_project/blob/master/Add%20backtest%20strategy%20and%20compute_sharpe_ratio\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "32yCsRUo8H33"
+      },
+      "source": [
+        "# CITS4404 Firefly Algorithm Trading Bot\n",
+        "#### by: Davinh Dang (22717235), Dayu Liu (24188516), Ethan Young (23450844), Flavian Jerotich (24001784), Kushan Jayasekera (24205163), Xin Wang (24201533)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "faX-bGXZbfiq"
+      },
+      "source": [
+        "# README\n",
+        "This folder contains this `ipynb` file to run bot training and trading, dataset is imported from kaggle."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "6po98qVA8bJD"
+      },
+      "source": [
+        "# 1. Dataset Processing and Filter Implementation\n",
+        "This step involves processing kaggle dataset. Dates and Closing prices are extracted with their corresponding values, ready for use for further processing for the analysis.\n",
+        "### Get required Python Modules"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "MMaCJRj2bfir",
+        "outputId": "eec15363-1430-4ef6-de6f-4777d716ea91"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Requirement already satisfied: torch in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (2.3.0)\n",
+            "Requirement already satisfied: filelock in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from torch) (3.14.0)\n",
+            "Requirement already satisfied: typing-extensions>=4.8.0 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from torch) (4.10.0)\n",
+            "Requirement already satisfied: sympy in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from torch) (1.12)\n",
+            "Requirement already satisfied: networkx in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from torch) (3.3)\n",
+            "Requirement already satisfied: jinja2 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from torch) (3.1.3)\n",
+            "Requirement already satisfied: fsspec in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from torch) (2024.3.1)\n",
+            "Requirement already satisfied: mkl<=2021.4.0,>=2021.1.1 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from torch) (2021.4.0)\n",
+            "Requirement already satisfied: intel-openmp==2021.* in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from mkl<=2021.4.0,>=2021.1.1->torch) (2021.4.0)\n",
+            "Requirement already satisfied: tbb==2021.* in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from mkl<=2021.4.0,>=2021.1.1->torch) (2021.12.0)\n",
+            "Requirement already satisfied: MarkupSafe>=2.0 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from jinja2->torch) (2.1.5)\n",
+            "Requirement already satisfied: mpmath>=0.19 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from sympy->torch) (1.3.0)\n"
+          ]
+        },
+        {
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "\n",
+            "[notice] A new release of pip is available: 24.0 -> 25.0.1\n",
+            "[notice] To update, run: python.exe -m pip install --upgrade pip\n"
+          ]
+        },
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Requirement already satisfied: numpy in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (1.26.4)\n"
+          ]
+        },
+        {
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "\n",
+            "[notice] A new release of pip is available: 24.0 -> 25.0.1\n",
+            "[notice] To update, run: python.exe -m pip install --upgrade pip\n"
+          ]
+        },
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Requirement already satisfied: pandas in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (2.2.2)\n",
+            "Requirement already satisfied: numpy>=1.22.4 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from pandas) (1.26.4)\n",
+            "Requirement already satisfied: python-dateutil>=2.8.2 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from pandas) (2.9.0.post0)\n",
+            "Requirement already satisfied: pytz>=2020.1 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from pandas) (2024.1)\n",
+            "Requirement already satisfied: tzdata>=2022.7 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from pandas) (2024.1)\n",
+            "Requirement already satisfied: six>=1.5 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from python-dateutil>=2.8.2->pandas) (1.16.0)\n"
+          ]
+        },
+        {
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "\n",
+            "[notice] A new release of pip is available: 24.0 -> 25.0.1\n",
+            "[notice] To update, run: python.exe -m pip install --upgrade pip\n"
+          ]
+        },
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Requirement already satisfied: kagglehub in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (0.3.11)\n",
+            "Requirement already satisfied: packaging in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from kagglehub) (23.0)\n",
+            "Requirement already satisfied: pyyaml in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from kagglehub) (6.0.1)\n",
+            "Requirement already satisfied: requests in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from kagglehub) (2.31.0)\n",
+            "Requirement already satisfied: tqdm in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from kagglehub) (4.66.2)\n",
+            "Requirement already satisfied: charset-normalizer<4,>=2 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from requests->kagglehub) (3.3.2)\n",
+            "Requirement already satisfied: idna<4,>=2.5 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from requests->kagglehub) (2.10)\n",
+            "Requirement already satisfied: urllib3<3,>=1.21.1 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from requests->kagglehub) (2.2.1)\n",
+            "Requirement already satisfied: certifi>=2017.4.17 in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from requests->kagglehub) (2024.2.2)\n",
+            "Requirement already satisfied: colorama in c:\\users\\administrator\\appdata\\local\\programs\\python\\python310\\lib\\site-packages (from tqdm->kagglehub) (0.4.6)\n"
+          ]
+        },
+        {
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "\n",
+            "[notice] A new release of pip is available: 24.0 -> 25.0.1\n",
+            "[notice] To update, run: python.exe -m pip install --upgrade pip\n"
+          ]
+        }
+      ],
+      "source": [
+        "# TODO Required modules\n",
+        "!pip install torch\n",
+        "!pip install numpy\n",
+        "!pip install pandas\n",
+        "!pip install kagglehub"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 9,
+      "metadata": {
+        "id": "XRNDIqgAbfir"
+      },
+      "outputs": [],
+      "source": [
+        "# Import libraries\n",
+        "# Essentials\n",
+        "import numpy as np\n",
+        "\n",
+        "# Data Processing\n",
+        "import pandas as pd\n",
+        "import kagglehub\n",
+        "\n",
+        "# FIXME Modeling\n",
+        "import torch\n",
+        "import torch.nn as nn\n",
+        "import torch.optim as optim\n",
+        "import torch.nn.functional as F\n",
+        "from torch.nn.utils.rnn import pad_sequence\n",
+        "import time\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "DkhSq4TYbfis"
+      },
+      "source": [
+        "### Data Processing"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 10,
+      "metadata": {
+        "id": "qvff21Hv8zjk",
+        "outputId": "e8cd9f84-b3bb-46a3-b7ae-3b3e03096aad",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Downloading from https://www.kaggle.com/api/v1/datasets/download/prasoonkottarathil/btcinusd?dataset_version_number=4...\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "100%|██████████| 80.2M/80.2M [00:00<00:00, 146MB/s]"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Extracting files...\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Path to dataset files: /root/.cache/kagglehub/datasets/prasoonkottarathil/btcinusd/versions/4\n",
+            "Dates: 0    2022-03-01 00:00:00\n",
+            "1    2022-02-28 00:00:00\n",
+            "2    2022-02-27 00:00:00\n",
+            "3    2022-02-26 00:00:00\n",
+            "4    2022-02-25 00:00:00\n",
+            "Name: date, dtype: object\n",
+            "Prices: 0    43185.48\n",
+            "1    43178.98\n",
+            "2    37712.68\n",
+            "3    39146.66\n",
+            "4    39231.64\n",
+            "Name: price, dtype: float64\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Download dataset from Kaggle\n",
+        "path = kagglehub.dataset_download(\"prasoonkottarathil/btcinusd\")\n",
+        "print(\"Path to dataset files:\", path)\n",
+        "\n",
+        "fileName = \"BTC-Daily.csv\"  #! Other candidates include BTC-{2017-2021}min.csv, BTC-Hourly.csv (Which are hourly data and may not be suitable)\n",
+        "\n",
+        "def preprocess_data(path, fileName):\n",
+        "    # Open dataset and load file as CSV\n",
+        "    file_path = f\"{path}/{fileName}\"\n",
+        "    data = pd.read_csv(file_path)\n",
+        "\n",
+        "    # Extract relevant columns\n",
+        "    dates = data['date'].tolist()\n",
+        "    prices = data['close'].tolist()\n",
+        "\n",
+        "    # Create a DataFrame\n",
+        "    df = pd.DataFrame({'date': dates, 'price': prices})\n",
+        "    return df\n",
+        "\n",
+        "train_df = preprocess_data(path, fileName)\n",
+        "\n",
+        "# Variables for model\n",
+        "dates = train_df['date']\n",
+        "prices = train_df['price']\n",
+        "print(\"Dates:\", dates[:5])\n",
+        "print(\"Prices:\", prices[:5])"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Egn7YmIvbfis"
+      },
+      "source": [
+        "### SMA Filter Implementation"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 12,
+      "metadata": {
+        "id": "T0FBGCfGbfis",
+        "outputId": "15d474fb-91a8-4670-eb5c-6ebed1063dda",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "sma10: [42625.384 43034.841 43366.134 43218.01  42902.534]\n"
+          ]
+        }
+      ],
+      "source": [
+        "def pad(P, N):\n",
+        "    flip = np.flip(P[1:N]) # TODO The project instruction have a negate sign before the flip function, could be a typo\n",
+        "    return np.append(flip, P)\n",
+        "\n",
+        "def sma_filter(P, N):\n",
+        "    # pad the series\n",
+        "    P_pad = pad(P, N)\n",
+        "    # Roll the window and calculate the weighted average\n",
+        "    sma_full = pd.Series(P_pad).rolling(window=N).mean().to_numpy()\n",
+        "    return sma_full[N-1:]\n",
+        "\n",
+        "#! To generate an N-day SMA we can simply call\n",
+        "sma10 = sma_filter(prices, 10)\n",
+        "sma20 = sma_filter(prices, 20)\n",
+        "print(\"sma10:\", sma10[20:25])"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "1FA2ao2l8hOg"
+      },
+      "source": [
+        "# 2. Model Implementation (TODO)\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "by_-dN1mbfit"
+      },
+      "source": [
+        "### Model's Hyperparameters (TODO)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 13,
+      "metadata": {
+        "id": "Kqg9KcoHbfit"
+      },
+      "outputs": [],
+      "source": [
+        "# Variable Initialization\n",
+        "lb = 10 # Short-term moving average window size\n",
+        "ub = 40 # Long-term moving average window size"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "hGz5qMMzbfit"
+      },
+      "source": [
+        "### Model Constructor (TODO)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 14,
+      "metadata": {
+        "id": "2WH5n3j_bfit"
+      },
+      "outputs": [],
+      "source": [
+        "# FIXME from https://github.com/firefly-cpp/FireflyAlgorithm/blob/master/fireflyalgorithm/fireflyalgorithm.py\n",
+        "import numpy as np\n",
+        "from numpy.random import default_rng\n",
+        "\n",
+        "\n",
+        "class FireflyAlgorithm:\n",
+        "    def __init__(self, pop_size=20, alpha=1.0, betamin=1.0, gamma=0.01, seed=None):\n",
+        "        self.pop_size = pop_size\n",
+        "        self.alpha = alpha\n",
+        "        self.betamin = betamin\n",
+        "        self.gamma = gamma\n",
+        "        self.rng = default_rng(seed)\n",
+        "\n",
+        "    def run(self, function, dim, lb, ub, max_evals):\n",
+        "        fireflies = self.rng.uniform(lb, ub, (self.pop_size, dim))\n",
+        "        intensity = np.apply_along_axis(function, 1, fireflies)\n",
+        "        best = np.min(intensity)\n",
+        "\n",
+        "        evaluations = self.pop_size\n",
+        "        new_alpha = self.alpha\n",
+        "        search_range = ub - lb\n",
+        "\n",
+        "        while evaluations <= max_evals:\n",
+        "            new_alpha *= 0.97\n",
+        "            for i in range(self.pop_size):\n",
+        "                for j in range(self.pop_size):\n",
+        "                    if intensity[i] >= intensity[j]:\n",
+        "                        r = np.sum(np.square(fireflies[i] - fireflies[j]), axis=-1)\n",
+        "                        beta = self.betamin * np.exp(-self.gamma * r)\n",
+        "                        steps = new_alpha * (self.rng.random(dim) - 0.5) * search_range\n",
+        "                        fireflies[i] += beta * (fireflies[j] - fireflies[i]) + steps\n",
+        "                        fireflies[i] = np.clip(fireflies[i], lb, ub)\n",
+        "                        intensity[i] = function(fireflies[i])\n",
+        "                        evaluations += 1\n",
+        "                        best = min(intensity[i], best)\n",
+        "        return best, fireflies[np.argmin(intensity)] # TODO return not just the score but also best parameters"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "yDWCJfYWbfit"
+      },
+      "source": [
+        "### Model Training (TODO)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 17,
+      "metadata": {
+        "id": "rfH5FvMXbfit",
+        "outputId": "70f81e66-a8e0-4b0c-8fa6-06f8bf8b8879",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "(np.float64(1947.1350606002711), array([28.94578429, 10.        , 13.14252993, 18.82665417, 33.26986864,\n",
+            "       10.        , 10.        , 12.35378167, 15.26244805, 21.61276763]))\n",
+            "Best Sharpe Ratio: -0.009866822220598415\n",
+            "Best Parameters: SMA1=30.0, SMA2=31.14481295921547\n"
+          ]
+        }
+      ],
+      "source": [
+        "# FIXME Example usage from https://github.com/firefly-cpp/FireflyAlgorithm/blob/master/fireflyalgorithm/problems.py and https://github.com/firefly-cpp/FireflyAlgorithm/blob/master/examples/run.py\n",
+        "def sphere(x):\n",
+        "    return np.sum(x**2)\n",
+        "FA = FireflyAlgorithm()\n",
+        "best = FA.run(function=sphere, dim=10, lb=lb, ub=ub, max_evals=10000)\n",
+        "print(best)\n",
+        "\n",
+        "\n",
+        "# FIXME from ChatGPT on how to apply our own fitness to tune sma window sizes\n",
+        "def firefly_fitness_wrapper(prices):\n",
+        "    def wrapped_firefly_fitness(X):\n",
+        "        sma1 = int(round(X[0]))\n",
+        "        sma2 = int(round(X[1]))\n",
+        "        if sma1 >= sma2:\n",
+        "            return 1e9  #! HIGH value = BAD fitness (we minimize)\n",
+        "        returns = backtest_strategy(sma1, sma2, prices)\n",
+        "        score = -compute_sharpe_ratio(returns)  # We minimize, so negate Sharpe ratio\n",
+        "        return score\n",
+        "    return wrapped_firefly_fitness\n",
+        "\n",
+        "def backtest_strategy(SMA1, SMA2, prices):\n",
+        "    sma1 = prices.rolling(window=int(SMA1)).mean()\n",
+        "    sma2 = prices.rolling(window=int(SMA2)).mean()\n",
+        "\n",
+        "    signal = np.where(sma1 > sma2, 1, 0)\n",
+        "    returns = prices.pct_change().shift(-1)  # Next-day return\n",
+        "    strategy_returns = signal[:-1] * returns[1:]\n",
+        "    return strategy_returns\n",
+        "\n",
+        "def compute_sharpe_ratio(returns):\n",
+        "    mean_ret = np.mean(returns)\n",
+        "    std_ret = np.std(returns)\n",
+        "    if std_ret == 0:\n",
+        "        return 0\n",
+        "    return mean_ret / std_ret\n",
+        "\n",
+        "firefly = FireflyAlgorithm(pop_size=25, alpha=0.5, betamin=0.2, gamma=1.0, seed=42)\n",
+        "fitness_fn = firefly_fitness_wrapper(prices)\n",
+        "best_score, best_params = firefly.run(fitness_fn, dim=2, lb=np.array([5, 10]), ub=np.array([30, 60]), max_evals=1000)\n",
+        "print(f\"Best Sharpe Ratio: {best_score}\")\n",
+        "print(f\"Best Parameters: SMA1={best_params[0]}, SMA2={best_params[1]}\")"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "EzGuzHPE87Ya"
+      },
+      "source": [
+        "# 3. Trading strategy (TODO)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 18,
+      "metadata": {
+        "id": "46nYaSjebfit"
+      },
+      "outputs": [],
+      "source": [
+        "# FIXME from ChatGPT\n",
+        "def simulate_trading(prices, SMA1, SMA2, initial_capital=1000):\n",
+        "    sma1 = sma_filter(SMA1)\n",
+        "    sma2 = sma_filter(SMA2)\n",
+        "\n",
+        "    signal = np.where(sma1 > sma2, 1, 0)  # 1 = Buy, 0 = Sell\n",
+        "    position = 0\n",
+        "    capital = initial_capital\n",
+        "    shares = 0\n",
+        "\n",
+        "    for i in range(1, len(prices)):\n",
+        "        price_today = prices.iloc[i]\n",
+        "        signal_today = signal[i]\n",
+        "\n",
+        "        # Buy signal (if not holding)\n",
+        "        if signal_today == 1 and position == 0:\n",
+        "            shares = capital / price_today\n",
+        "            capital = 0\n",
+        "            position = 1\n",
+        "        # Sell signal (if holding)\n",
+        "        elif signal_today == 0 and position == 1:\n",
+        "            capital = shares * price_today\n",
+        "            shares = 0\n",
+        "            position = 0\n",
+        "\n",
+        "    # Liquidate at end\n",
+        "    if position == 1:\n",
+        "        capital = shares * prices.iloc[-1]\n",
+        "\n",
+        "    return capital\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "7WzGC_8jbfit"
+      },
+      "outputs": [],
+      "source": [
+        "# Assume you already got these from Firefly output:\n",
+        "best_sma1, best_sma2 = 10, 20\n",
+        "\n",
+        "final_value = simulate_trading(prices, best_sma1, best_sma2)\n",
+        "print(f\"Final capital after simulation: ${final_value:.2f}\")"
+      ]
+    }
+  ],
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.10.11"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
